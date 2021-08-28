@@ -1,0 +1,124 @@
+macro -;
+macro [100000;
+macro *10 100000;
+macro=;
+macfloat 2;
+warn -;
+hold 10000; rs 1;
+mult: hold 30 replic 50;
+collapse 3; collapse [;
+ckeep;
+log log.csv; quote Char 0,Char 1,Extra steps; log/;
+
+/*This script regresses 2 continuous characters. JEH 3.v.2020 */;
+/*User specifies 2 characters and the min and max values of each character.*/
+/*Its increments are 0.1, and it spans a range that is the difference between the min and max.*/
+/*To change the increments, search for commented "Increment".*/
+
+var: charray[2] minmst0 minmst1 range0 range1 mxst trnum baselength a b max s corr;
+
+set minmst0 %2; set minmst1 %5; /*Args: minimum state of char 0, minimum state of char 1.*/
+
+quote First char %1 has range '%2' to '%3', second char %4 has range '%5' to '%6';
+
+set charray [0] %1;		/*First char*/
+set range0 ((%3-%2)*2);		/*The range vars are integers from 0 up.*/
+set charray [1] %4;		/*Second char*/
+set range1 ((%6-%5)*10);
+
+loop=blanks 0 nchar
+	xread= #blanks 1 ?;
+stop
+
+var: steparray [('range0'+1), ('range1'+1)];	/*Plus 1 to include the first and last increments*/
+
+taxcode -1;
+if (ntax > 14)
+	mult; else
+	ie; end
+best;
+taxcode +1;
+set baselength length[0];
+	quote BASELENGTH 'baselength';
+set trnum ntrees;
+tsave * tntrees.tre;
+save; tsave/;
+cc !;
+
+loop =stch0 0 'range0'
+	xread= 'charray[0]' 1 'minmst0';
+	loop =stch1 0 'range1'
+		xread= 'charray[1]' 1 'minmst1';
+		loop =constree 0 'trnum'
+			keep 0;
+			proc tntrees.tre;
+			quote Current Tree #constree;
+			force >1;
+			force / & #constree;
+			constrain=;
+			silent=all;
+			if (ntax > 14)
+				mult; else
+				ie;
+				end
+			best;
+			silent-all;
+			if (#constree == 0)
+				set steparray [#stch0,#stch1] (length[0] - 'baselength');
+				end
+			if ((#constree != 0) && ((length[0] - 'baselength') < 'steparray [#stch0,#stch1]'))
+				set steparray [#stch0,#stch1] (length[0] - 'baselength');
+				end
+			if ((#constree !=0) && ((length[0] - 'baselength') >= 'steparray [#stch0,#stch1]'))
+				continue;
+				end
+log +log.csv; quote 'minmst0','minmst1','steparray [#stch0,#stch1]'; log/;
+			force ]; constrain -;
+		stop /*constree*/
+		set minmst1 +=(1/10);	/*Increment*/
+	stop /*stch1*/
+	set minmst1 %5;
+	set minmst0 +=(1/2);	/*Increment*/
+stop /*stch0*/
+
+log table.csv; log/;			/*This makes a regression graph*/
+var: maxmst0 maxmst1;			/*The y-axis and the columns are written in one column,*/
+set maxmst1 %6;				/*so you must cut and paste them into order.*/
+loop =column 0 'range1'
+	log +table.csv;
+	quote 'maxmst1',; log/;
+	set maxmst1 -=(1/10);	/*Increment*/
+stop
+set minmst0 %2;
+loop =row 0 'range0'
+	loop =column 'range1'-1 0
+		log +table.csv;
+		quote 'steparray[#row,#column]',; log/;
+		if (#column ==0)
+			log +table.csv; quote 'minmst0',; log/;
+			end
+	stop /*column*/
+	set minmst0 +=(1/2);	/*Increment*/
+stop /*row*/
+
+/*This part, the calculation of r, is wrong because max should be this: b*∑ (G-i)*(L-i) */
+/*But keep the code here to change later.*/
+/*set max (('range0'*'range1')-'range0'-'range1'+1);
+set s 0; 
+oop =x1 0 ('range0')
+	oop =x2 0 ('range1') 
+		set s+= 'steparray[#x1,#x2]';
+		log +log; quote CELL #x1 x #x2 IS 'steparray[#x1,#x2]'; log/;
+	top
+top
+set corr ('s'/'max');
+log +log; quote Characters 'charray[0]' and 'charray[1]' have s = 's', max = 'max', and r = 'corr'; log/;
+*/
+
+loop=blanks 0 nchar
+xread= #blanks 1 ?;
+stop
+
+force ];
+keep 0;
+proc/;

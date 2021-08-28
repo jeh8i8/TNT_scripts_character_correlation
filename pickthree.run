@@ -1,0 +1,117 @@
+macro -;
+macro [100000;
+macro *10 100000;
+macro=;
+
+warn -;
+hold 10000;
+mult: hold 30 replic 50;
+ckeep;
+log log; log/;
+
+/*User specifies 3 chars in args.*/
+
+var: charray[3] mxst trnum baselength a b c max s corr];
+
+set charray [0] %1;
+set charray [1] %2;
+set charray [2] %3;
+
+set a nstates['charray[0]'];
+set b nstates['charray[1]'];
+set c nstates['charray[2]'];
+
+loop=blanks 0 nchar
+xread= #blanks 1 -;
+stop
+
+set mxst maxstate['charray[0]'];
+loop 1 2		/*Do any of the other 2 chars have more states?*/
+if (maxstate['charray[#1]'] > 'mxst')
+	set mxst maxstate['charray[#1]'];
+	end
+stop
+
+var: steparray [('mxst'+1), ('mxst'+1), ('mxst'+1)];
+
+collapse 3; collapse [;
+taxcode -1;
+if (ntax > 14)
+	mult; else
+	ie; end
+best;
+taxcode +1;
+set baselength length[0];
+	quote BASELENGTH 'baselength';
+set trnum ntrees;
+tsave * tntrees.tre;
+save; tsave/;
+cc !;
+
+loop =stch0 0 ('a'-1)
+xread= 'charray[0]' 1 #stch0;
+
+loop =stch1 0 ('b'-1)
+xread= 'charray[1]' 1 #stch1;
+
+loop =stch2 0 ('c'-1)
+xread= 'charray[2]' 1 #stch2;
+
+loop =constree 0 'trnum'
+	keep 0;
+	proc tntrees.tre;
+	force >1;
+	force / & #constree;
+	constrain=;
+silent=all;
+
+if (ntax > 14)
+	mult; else
+	ie; end
+best;
+silent-all;
+if (#constree == 0)
+	set steparray [#stch0,#stch1,#stch2] (length[0] - 'baselength');
+	end
+if ((#constree != 0) && ((length[0] - 'baselength') < 'steparray [#stch0,#stch1,#stch2]'))
+	set steparray [#stch0,#stch1,#stch2] (length[0] - 'baselength');
+	log+log; quote TREE #constree IS SHORTER; log/;
+	end
+if ((#constree !=0) && ((length[0] - 'baselength') >= 'steparray [#stch0,#stch1,#stch2]'))
+	continue;
+	end
+
+force ]; constrain -;
+stop /*constree*/
+stop /*stch2*/
+stop /*stch1*/
+stop /*stch0*/
+
+set max ((2*'a'*'b'*'c')-('a'*'b')-('a'*'c')-('b'*'c')+1);
+set s 0; 
+loop =x1 0 ('a'-1)
+loop =x2 0 ('b'-1) 
+loop =x3 0 ('c'-1)
+set s+= 'steparray[#x1,#x2,#x3]';
+log +log; quote CELL #x1 x #x2 x #x3 IS 'steparray[#x1,#x2,#x3]'; log/;
+stop
+stop
+stop
+set corr ('s'/'max');
+log +log; quote Characters 'charray[0]', 'charray[1]', and 'charray[2]' have s = 's', max = 'max', and r = 'corr'; log/;
+
+loop=p 0 ('mxst'-1);
+loop=q 0 ('mxst'-1);
+loop=r 0 ('mxst'-1);
+set steparray[#p,#q,#r] 0;
+stop
+stop
+stop
+
+loop=blanks 0 nchar
+xread= #blanks 1 -;
+stop
+
+force ];
+keep 0;
+proc/;

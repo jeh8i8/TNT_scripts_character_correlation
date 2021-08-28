@@ -1,0 +1,124 @@
+macro -;
+macro [1100000;
+macro *11 1100000;
+macro=;
+
+/*For 9 characters. Based on rho20. */
+/*Max of the index: ni = nstates[i]; k = nchar-1. (k-1)∏ni - ∑(i)(∏(j)nj/ni) +1. So for all n equal: (k-1)(n^k)-k*n^(k-1)+1. For any nchar, not just 2.*/
+
+warn -;
+hold 10000;
+mult: hold 30 replic 50;
+ckeep;
+log log; log/;
+
+var: a trnum baselength counter constree s max least corr;
+
+set a (nstates[0]); /*This starts with the first char*/
+loop 1 nchar		/*Go thru the other chars*/
+	set a ('a' *(nstates[#1]));
+stop
+quote The product sum of states is 'a';
+var: steparray['a'];
+
+loop=blanks 0 nchar
+xread= #blanks 1 -;
+stop
+
+collapse 3; collapse [;
+taxcode -1;
+if (ntax > 14)
+	mult; else
+	ie; end
+best;
+taxcode +1;
+set baselength length[0];
+	quote BASELENGTH 'baselength';
+set trnum ntrees;
+tsave * tntrees.tre;
+save; tsave/;
+cc !;
+
+loop=zeroes 0 nchar
+xread=#zeroes 1 0;
+stop
+
+set counter (0);
+loop 0 (nstates[0]-1)
+xread=0 1 #1;
+loop 0 (nstates[1]-1)
+xread=1 1 #2;
+loop 0 (nstates[2]-1)
+xread=2 1 #3;
+loop 0 (nstates[3]-1)
+xread=3 1 #4;
+loop 0 (nstates[4]-1)
+xread=4 1 #5;
+loop 0 (nstates[5]-1)
+xread=5 1 #6;
+loop 0 (nstates[6]-1)
+xread=6 1 #7;
+loop 0 (nstates[7]-1)
+xread=7 1 #8;
+loop 0 (nstates[8]-1)
+xread=8 1 #9;
+
+loop =constree 0 'trnum'
+	keep 0;
+	proc tntrees.tre;
+	force >1;
+	force / & #constree;
+	constrain=;
+silent=all;
+
+if (ntax > 14)
+	mult; else
+	ie; end
+best;
+silent-all;
+if (#constree == 0)
+	set steparray ['counter'] (length[0] - 'baselength');
+	end
+if ((#constree != 0) && ((length[0] - 'baselength') < 'steparray ['counter']'))
+	set steparray ['counter'] (length[0] - 'baselength');
+	log+log; quote TREE #constree IS SHORTER; log/;
+	end
+if ((#constree !=0) && ((length[0] - 'baselength') >= 'steparray ['counter']'))
+	continue;
+	end
+log +log; quote Combo #1 #2 #3 #4 #5 #6 #7 #8 #9 has 'steparray['counter']' steps; log/; /*Say no. steps for each permutation*/
+force ]; constrain -;
+stop /*constree*/
+set counter ++;
+stop /*stch8*/
+stop
+stop
+stop
+stop
+stop
+stop
+stop
+stop /*stch0*/
+
+set max ((nchar*'a')-('a'/nstates[0])-('a'/nstates[1])-('a'/nstates[2])-('a'/nstates[3])-('a'/nstates[4])-('a'/nstates[5])-('a'/nstates[6])-('a'/nstates[7])-('a'/nstates[8]) +1);
+
+set s 0;  /*This sums the no. steps of all permutations*/
+loop=sum 0 ('a'-1)
+	set s+= 'steparray[#sum]';
+/*	log +log; quote STEP ARRAY 'steparray[#sum]'; log/; */
+stop
+
+set corr ('s'/'max');
+log +log; quote Ensemble rho: total steps = 's', max = 'max', and r = 'corr'; log/;
+
+loop=erase 0 ('counter'-1) 
+	set steparray[#erase] 0;
+stop
+
+loop=blanks 0 nchar
+xread= #blanks 1 -;
+stop
+
+force ];
+keep 0;
+proc/;
